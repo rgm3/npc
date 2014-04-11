@@ -28,6 +28,7 @@
 #include <limits.h>
 #include <time.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <openssl/md5.h>
 #include <curl/curl.h>
 
@@ -42,20 +43,21 @@ void postResult( char* );
 int setRandomBaseString( char**, char* );
 
 // globals :-/
-char magicString[] = "novena";            // stored in digest[]
-unsigned char digest[MD5_DIGEST_LENGTH];  // = md5("novena")
+const char magicString[] = "novena";              // stored in digest[]
+unsigned char digest[MD5_DIGEST_LENGTH];          // = md5("novena") = 29c986a49abf80e9edf2ffe8efb7e040
 unsigned char candidateDigest[MD5_DIGEST_LENGTH]; // buffer for storing digests, used by inner loop
+const int PROGRESS_ITERATIONS = 10000000;         // show progress after this many ticks
 
 int main(int argc, const char * argv[])
 {
-    int difficulty = 103; // how many bits must match before accepted by server
-    char candidate[128]; //buffer
-    char sNumber[70];    //2^64 only has about 20 digits really, but this is plenty
-    char strDigest[33];  //ASCII representation of digest = 32 chars + null
+    int numCPUs = sysconf( _SC_NPROCESSORS_ONLN );
+    int difficulty = 104;   // how many bits must match before accepted by server
+    char candidate[128];    // buffer - holds string to be hashed
+    char nonce[21];         // nonce appended to a base string. 2^64 only has 20 digits
+    char strDigest[33];     // ASCII representation of digest = 32 chars + null
     char defaultBase[] = "novena#";
     char *baseString;
 
-    //unsigned long max = 12;
     unsigned long max = ULONG_MAX; // the nonce appended to the base string, on which md5() is run
 
     // To allow for command-level parallelization, get an input string as a hash base
@@ -73,11 +75,14 @@ int main(int argc, const char * argv[])
             printf("error.\n");
             return -2;
         }
-        //printf("Address of baseString: %p\n", baseString);
-        //printf("returned from setRandomBaseString. baseString = %s\n", baseString);
     }
 
-    //printf("got the base string of %s, length %lu\n", baseString, strlen(baseString));
+    if ( numCPUs > 0 ) {
+        printf("Found %d CPUs. It'd be nice if I had threads, eh?\n", numCPUs);
+        // learn pthreads. decide about better output.  link with ncurses?
+        // ugh.  maybe just a few console escape sequences
+    }
+
     
     // Find digest of target
     MD5((unsigned char*)&magicString, strlen(magicString), (unsigned char*)&digest);
@@ -89,23 +94,22 @@ int main(int argc, const char * argv[])
         
         MD5((unsigned char*)&candidate, strlen(candidate), (unsigned char*)&candidateDigest);
 
-        //setDigestString(strDigest, candidateDigest);
         int matchingBits = countMatchingBits(candidateDigest);
         
-        if ( i % 10000000 == 0) {
+        if ( i % PROGRESS_ITERATIONS == 0) {
             printf(".");
-	        fflush(stdout); // a.k.a. WTF IS MY printf NOT SHOWING UP.  IS MY SHIT HANGING?.  *sigh*
+            fflush(stdout); // this took some searching to figure out about buffered output
         }
         
-        // Found something close, submit it.
+        // Found something sort of close, submit it just in case and to feel proud of a useless accomplishment
         if ( matchingBits >= difficulty - 5) {
           setDigestString(strDigest, candidateDigest);
           printf("\nstr: %s, md5: %s, bits in common: %d\n", candidate, strDigest, matchingBits);
-	      postResult( candidate );
+          postResult( candidate );
         }
     }
     
-    printf("Done\n");
+    printf("Done\n"); // TODO: trap signals, make loop run forever until interrupted, print hash rate.
     
     free(baseString);
     return 0;
@@ -117,21 +121,15 @@ int setRandomBaseString( char **buf, char *base ) {
     char randStr[16];
 
     srand(time(NULL));
-    rand(); // throw the first one away, always seems to be in the same range
-    int r = rand() % 10000;
+    rand(); // throw the first one away, its first digits seem to always be '579'.  curious.
+    int r = rand() % 100000;
     sprintf(randStr, "%d", r);
 
-    int bytesNeeded = strlen(base) + strlen(randStr) + 1;
-   // printf("trying to allocate %d bytes for buffer to hold string %s%s\n", bytesNeeded, base, randStr);
-
-    *buf = malloc(bytesNeeded);
-    //printf("Address of buf: %p\n", *buf);
-    if (buf != NULL) {
-    //    unsigned int len = sprintf(&buf, "%s%d", base, r);
-     //   printf("sprintf copied %d bytes (including the null) into buf. buf is now: %s\n", len + 1, buf);
+    *buf = malloc(strlen(base) + strlen(randStr) + 1);
+    if (*buf != NULL) {
+        // sprintf(*buf, "%s%d", base, r);
         strcpy(*buf, base);
         strcat(*buf, randStr);
-        //printf("strcpy and strcat used, buf = %s, strlen(buf) = %lu\n", *buf, strlen(*buf));
     } else {
         printf("malloc fail for random base string\n");
         return 0;
