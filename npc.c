@@ -16,10 +16,12 @@
 //
 //  So I have one single point.  Hoping to get lucky enough to get 2 points, to at least make the top 10 list.
 //
-//  Closest I've gotten is 101 matching bits (other than the 128 matching bits from guessing correctly that "novena" was the source of the target digets)
-//  str: aaa000fun4996956590, md5: cbc98e88bb2f16e8ecb2f7c0e7bde070, bits in common: 101
-//  posting: {"username":"rgm","contents":"aaa000fun4996956590"}
-//  {"status": "failure", "reason": "hash cbc98e88bb2f16e8ecb2f7c0e7bde070 only matches 101 bits"}
+//  Closest I've gotten is 103 matching bits (other than the 128 matching bits from guessing correctly that "novena" was the source of the target digets)
+//
+//                             target: 29c986a49abf80e9edf2ffe8efb7e040
+//  str: novena#2177818852907162, md5: a85b96e192bb08c9adf17fe8d637e2c0, bits in common: 103
+//  posting: {"username":"rgm","contents":"novena#2177818852907162"}
+//  {"status": "failure", "reason": "hash a85b96e192bb08c9adf17fe8d637e2c0 only matches 103 bits"}
 //
 
 #include <stdio.h>
@@ -46,12 +48,12 @@ int setRandomBaseString( char**, char* );
 const char magicString[] = "novena";              // stored in digest[]
 unsigned char digest[MD5_DIGEST_LENGTH];          // = md5("novena") = 29c986a49abf80e9edf2ffe8efb7e040
 unsigned char candidateDigest[MD5_DIGEST_LENGTH]; // buffer for storing digests, used by inner loop
-const int PROGRESS_ITERATIONS = 10000000;         // show progress after this many ticks
+const int PROGRESS_ITERATIONS = 100000000;         // show progress after this many ticks
 
 int main(int argc, const char * argv[])
 {
     int numCPUs = sysconf( _SC_NPROCESSORS_ONLN );
-    int difficulty = 104;   // how many bits must match before accepted by server
+    int difficulty = 105;   // how many bits must match before accepted by server
     char candidate[128];    // buffer - holds string to be hashed
     char nonce[21];         // nonce appended to a base string. 2^64 only has 20 digits
     char strDigest[33];     // ASCII representation of digest = 32 chars + null
@@ -77,11 +79,11 @@ int main(int argc, const char * argv[])
         }
     }
 
-    if ( numCPUs > 0 ) {
-        printf("Found %d CPUs. It'd be nice if I had threads, eh?\n", numCPUs);
+    //if ( numCPUs > 0 ) {
+    //    printf("Found %d CPUs. It'd be nice if I had threads, eh?\n", numCPUs);
         // learn pthreads. decide about better output.  link with ncurses?
         // ugh.  maybe just a few console escape sequences
-    }
+    //}
 
     
     // Find digest of target
@@ -102,7 +104,7 @@ int main(int argc, const char * argv[])
         }
         
         // Found something sort of close, submit it just in case and to feel proud of a useless accomplishment
-        if ( matchingBits >= difficulty - 5) {
+        if ( matchingBits >= difficulty - 3) {
           setDigestString(strDigest, candidateDigest);
           printf("\nstr: %s, md5: %s, bits in common: %d\n", candidate, strDigest, matchingBits);
           postResult( candidate );
