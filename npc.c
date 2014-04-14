@@ -16,12 +16,11 @@
 //
 //  So I have one single point.  Hoping to get lucky enough to get 2 points, to at least make the top 10 list.
 //
-//  Closest I've gotten is 103 matching bits (other than the 128 matching bits from guessing correctly that "novena" was the source of the target digets)
+//  Closest I've gotten is 104 matching bits (other than the 128 matching bits from guessing correctly 
+//  that "novena" was the source of the target digest)
 //
-//                             target: 29c986a49abf80e9edf2ffe8efb7e040
-//  str: novena#2177818852907162, md5: a85b96e192bb08c9adf17fe8d637e2c0, bits in common: 103
-//  posting: {"username":"rgm","contents":"novena#2177818852907162"}
-//  {"status": "failure", "reason": "hash a85b96e192bb08c9adf17fe8d637e2c0 only matches 103 bits"}
+//                           target: 29c986a49abf80e9edf2ffe8efb7e040
+//  str: novena#43185783981559, md5: 29898ea42aaf92e7ef3abfd9eff7e284, bits in common: 104
 //
 
 #include <stdio.h>
@@ -92,7 +91,7 @@ int main(int argc, const char * argv[])
     printf("Hashing starting from base string %s, difficulty %d\n", baseString, difficulty);
     
     for ( unsigned long i = 0; i <= max; ++i ) {
-        sprintf(candidate, "%s%lu", baseString, i); // fuck you strcpy, strcat, strncat, strlen, memset, malloc, and all your friends.  We'll try again with those some day...
+        sprintf(candidate, "%s%lu", baseString, i);
         
         MD5((unsigned char*)&candidate, strlen(candidate), (unsigned char*)&candidateDigest);
 
